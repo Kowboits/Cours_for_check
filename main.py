@@ -3,9 +3,17 @@ import os
 import requests
 from tqdm import tqdm
 import urllib.request
+import hashlib
 
-with open('token.txt', encoding='utf-8') as f:
-    TOKEN = f.readline()
+with open('keys.json', encoding='utf-8') as f:
+    data = json.load(f)
+    TOKEN = data['vk_token']
+    OK_TOKEN = data['ok_token']
+    session_secret_key = data['session_secret_key']
+    application_key = data['application_key']
+    ya_token = data['ya_token']
+
+
 class YaUploader:
     def __init__(self, token : str):
         self.token = token
@@ -42,24 +50,61 @@ class VKloader:
         response = requests.get(dowload_url, params=parsms)
         return response.json()
 
+class Ok_download:
+    def __init__(self):
+        self.token = OK_TOKEN
+
+    def get_md5(self, application_key, user_id, session_secret_key, detectTotalCount=False):
+        params = bytes(
+            f'application_key={application_key}detectTotalCount={detectTotalCount}fid={user_id}format=jsonmethod=photos.getPhotos{session_secret_key}',
+            encoding='utf-8')
+        md5_hash = hashlib.md5()
+        md5_hash.update(params)
+        return md5_hash.hexdigest()
+
+    def get_photo_list(self, application_key, user_id, session_secret_key, count, detectTotalCount=False):
+        url = 'https://api.ok.ru/fb.do'
+        params = {'application_key': application_key, 'count': count, 'detectTotalCount': detectTotalCount, 'fid': user_id,
+                  'format': 'json', 'method': 'photos.getPhotos','sig':self.get_md5(application_key, user_id, session_secret_key, detectTotalCount), 'access_token': self.token}
+        response = requests.get(url, params = params)
+        return response.json()
+
 if __name__ == '__main__':
-    u_id = int(input('Введте ID пользователя')) #600205522
-    loader = VKloader()
-    reslult = loader.get_photos_list(u_id)
-    higest_pictures_url_list, likes_list, sizes, for_file = [], [], [], []
-    token = ''
-    uploader = YaUploader(token)
+    choice = int(input('Введите идентификатор социальной сети (1 - VK, 2 - OK:)'))
+    if choice == 1:
+        u_id = int(input('Введте ID пользователя: '))
+        loader = VKloader()
+        reslult = loader.get_photos_list(u_id)
+        uploader = YaUploader(ya_token)
 
-    for i in range(len(reslult['response']['items'])):
-        higest_pictures_url_list.append(reslult['response']['items'][i]['sizes'][-1]['url'])
-        likes_list.append(reslult['response']['items'][i]['likes']['count'])
-        sizes.append(reslult['response']['items'][i]['sizes'][-1]['type'])
-        for_file.append({'file_name': (str(likes_list[i]) + '.jpg'), 'size': sizes[i]})
+        higest_pictures_url_list, likes_list, sizes, for_file = [], [], [], []
 
-    with open('result.json', 'w', encoding='utf-8') as f:
-        json.dump(for_file, f)
+        for i in range(len(reslult['response']['items'])):
+            higest_pictures_url_list.append(reslult['response']['items'][i]['sizes'][-1]['url'])
+            likes_list.append(reslult['response']['items'][i]['likes']['count'])
+            sizes.append(reslult['response']['items'][i]['sizes'][-1]['type'])
+            for_file.append({'file_name': (str(likes_list[i]) + '.jpg'), 'size': sizes[i]})
 
-    for i in tqdm(range(len(higest_pictures_url_list))):
-        urllib.request.urlretrieve(higest_pictures_url_list[i], f'{likes_list[i]}.jpg')
-        uploader.upload(f'{likes_list[i]}.jpg', u_id)
-        os.remove(f'{likes_list[i]}.jpg')
+        with open('result.json', 'w', encoding='utf-8') as f:
+            json.dump(for_file, f)
+
+        for i in tqdm(range(len(higest_pictures_url_list))):
+            urllib.request.urlretrieve(higest_pictures_url_list[i], f'{likes_list[i]}.jpg')
+            uploader.upload(f'{likes_list[i]}.jpg', u_id)
+            os.remove(f'{likes_list[i]}.jpg')
+    elif choice == 2:
+        u_id = int(input('Введте ID пользователя: '))
+        loader = Ok_download()
+        uploader = YaUploader(ya_token)
+        result =loader.get_photo_list(application_key, u_id, session_secret_key, 100, True)
+
+        pictures_url_list, mark_count = [], []
+
+        for i in tqdm(range(len(result['photos']))):
+            pictures_url_list.append(result['photos'][i]['pic640x480'])
+            mark_count.append(result['photos'][i]['mark_count'])
+            urllib.request.urlretrieve(pictures_url_list[i], f'{mark_count[i]}.jpg')
+            uploader.upload(f'{mark_count[i]}.jpg', u_id)
+            os.remove(f'{mark_count[i]}.jpg')
+    else:
+        print('Все сломалось....')
