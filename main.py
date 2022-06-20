@@ -47,7 +47,7 @@ if __name__ == '__main__':
     loader = VKloader()
     reslult = loader.get_photos_list(u_id)
     higest_pictures_url_list, likes_list, sizes, for_file = [], [], [], []
-    token = 'AQAAAAAscO-rAADLW0smk4swSUrMjUeMsadsmTU'
+    token = ''
     uploader = YaUploader(token)
 
     for i in range(len(reslult['response']['items'])):
