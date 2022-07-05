@@ -4,6 +4,7 @@ import requests
 from tqdm import tqdm
 import urllib.request
 import hashlib
+import sys
 
 with open('keys.json', encoding='utf-8') as f:
     data = json.load(f)
@@ -46,9 +47,18 @@ class VKloader:
         self.token = TOKEN
     def get_photos_list(self, user_id):
         dowload_url ='https://api.vk.com/method/photos.get'
-        parsms = {'user_ids' : user_id, 'album_id' : 'profile' ,'access_token': self.token, 'v' : '5.131', 'extended' : 1,'photo_sizes' : 1}
+        parsms = {'owner_id' : user_id, 'album_id' : 'profile' ,'access_token': self.token, 'v' : '5.131', 'extended' : 1,'photo_sizes' : 1}
         response = requests.get(dowload_url, params=parsms)
-        return response.json()
+        if response.status_code == 200:
+            if 'error' in response.json():
+                print(f"Ошибка: {response.json()['error']['error_msg']}")
+                sys.exit(0)
+            else:
+                print(response.json())
+                return response.json()
+        else:
+            print(f"Ошибка: {response.json()['error']['error_msg']}")
+            sys.exit(0)
 
 class Ok_download:
     def __init__(self):
@@ -67,7 +77,17 @@ class Ok_download:
         params = {'application_key': application_key, 'count': count, 'detectTotalCount': detectTotalCount, 'fid': user_id,
                   'format': 'json', 'method': 'photos.getPhotos','sig':self.get_md5(application_key, user_id, session_secret_key, detectTotalCount), 'access_token': self.token}
         response = requests.get(url, params = params)
-        return response.json()
+        print(response)
+        if response.status_code == 200:
+            if 'error_code' in response.json():
+                print(f"Ошибка: {response.json()['error_msg']}")
+                sys.exit(0)
+            else:
+                print(response.json())
+                return response.json()
+        else:
+            print(f"Ошибка: {response.json()['error']['error_msg']}")
+            sys.exit(0)
 
 if __name__ == '__main__':
     choice = int(input('Введите идентификатор социальной сети (1 - VK, 2 - OK:)'))
