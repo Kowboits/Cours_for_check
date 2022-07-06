@@ -16,38 +16,40 @@ with open('keys.json', encoding='utf-8') as f:
 
 
 class YaUploader:
-    def __init__(self, token : str):
+    def __init__(self, token: str):
         self.token = token
 
     def get_header(self):
-        header = {'Content-Type' : 'application/json', 'Accept' : 'application/json', 'Authorization' : f'OAuth {self.token}'}
+        header = {'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': f'OAuth {self.token}'}
         return header
 
     def create_folder(self, new_folder):
         creation_link = 'https://cloud-api.yandex.net/v1/disk/resources'
         params = {'path': new_folder}
-        response = requests.put(creation_link, headers= self.get_header(),params=params)
-
+        response = requests.put(creation_link, headers=self.get_header(), params=params)
 
     def get_upload_url(self, path_to_file):
         upload_link = 'https://cloud-api.yandex.net/v1/disk/resources/upload'
         headers = self.get_header()
-        params = {'path' : path_to_file, 'overwrite' : 'True'}
-        response = requests.get(upload_link, headers=headers,params=params)
+        params = {'path': path_to_file, 'overwrite': 'True'}
+        response = requests.get(upload_link, headers=headers, params=params)
         return response.json()
 
     def upload(self, file_path: str, upload_folder: str):
         folder = self.create_folder(upload_folder)
         link = self.get_upload_url(path_to_file=(f'/{upload_folder}/{file_path}')).get('href')
-        response = requests.put(link, data = open(file_path,'rb'))
+        response = requests.put(link, data=open(file_path, 'rb'))
         return response
 
+
 class VKloader:
+
     def __init__(self):
         self.token = TOKEN
+
     def get_photos_list(self, user_id):
-        dowload_url ='https://api.vk.com/method/photos.get'
-        parsms = {'owner_id' : user_id, 'album_id' : 'profile' ,'access_token': self.token, 'v' : '5.131', 'extended' : 1,'photo_sizes' : 1}
+        dowload_url = 'https://api.vk.com/method/photos.get'
+        parsms = {'owner_id': user_id, 'album_id': 'profile', 'access_token': self.token, 'v': '5.131', 'extended': 1, 'photo_sizes': 1}
         response = requests.get(dowload_url, params=parsms)
         if response.status_code == 200:
             if 'error' in response.json():
@@ -80,7 +82,9 @@ class VKloader:
             uploader.upload(f'{likes_list[i]}.jpg', u_id)
             os.remove(f'{likes_list[i]}.jpg')
 
+
 class Ok_download:
+
     def __init__(self):
         self.token = OK_TOKEN
 
@@ -95,8 +99,8 @@ class Ok_download:
     def get_photo_list(self, application_key, user_id, session_secret_key, count, detectTotalCount=False):
         url = 'https://api.ok.ru/fb.do'
         params = {'application_key': application_key, 'count': count, 'detectTotalCount': detectTotalCount, 'fid': user_id,
-                  'format': 'json', 'method': 'photos.getPhotos','sig':self.get_md5(application_key, user_id, session_secret_key, detectTotalCount), 'access_token': self.token}
-        response = requests.get(url, params = params)
+                  'format': 'json', 'method': 'photos.getPhotos', 'sig': self.get_md5(application_key, user_id, session_secret_key, detectTotalCount), 'access_token': self.token}
+        response = requests.get(url, params=params)
         if response.status_code == 200:
             if 'error_code' in response.json():
                 print(f"Ошибка: {response.json()['error_msg']}")
@@ -122,7 +126,6 @@ class Ok_download:
             os.remove(f'{mark_count[i]}.jpg')
         with open('result_Ok.json', 'w', encoding='utf-8') as f:
             json.dump(for_file, f)
-
 
 
 if __name__ == '__main__':
