@@ -54,7 +54,7 @@ class VKloader:
                 print(f"Ошибка: {response.json()['error']['error_msg']}")
                 sys.exit(0)
             else:
-                print(response.json())
+                # print(response.json())
                 return response.json()
         else:
             print(f"Ошибка: {response.json()['error']['error_msg']}")
